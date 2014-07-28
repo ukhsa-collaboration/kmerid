@@ -1,0 +1,124 @@
+Table of content
+----------------
+  * Prerequisites
+  * Installation
+  * Set up reference genome groups
+  * Running KmerID
+  * KmerID output
+
+Prerequisites
+-------------
+The following Python libraries are required:
+sys, argparse, subprocess, os, operator, glob, ConfigParser, tempfile, scipy
+
+Installation
+------------
+
+1.) Unpack the tar.gz archive that you downloaded into a folder of your
+    choosing. This folder will  be called $KMERROOT in the following.
+    
+2.) Navigate to $KMERROOT. You should see, among others, subfolders
+    src, config and bin and two Python scripts.
+
+3.) Compile the auxilliary executables by typing mnake all.
+
+        make all
+    
+    This should create the files intersect_kmer_lists_filelist,
+    kmer_jaccard_index, kmer_reads_process_stdin, and kmer_refset_process
+    in the bin folder.
+    
+You still need to prepare your reference genome sets before you can
+run the software.
+
+Set up reference genome groups
+------------------------------
+
+KmerID will compare your fastq reads against one or more sets of reference
+genomes. We have been using it in such a way each set of reference genomes
+contains only genomes of species from a single bacterial genus.
+
+KmerID will first compare your fastq reads again 3 representatives of each
+group. ON the basis of this it will determine against which group(s) to
+further compare your reads. There are no limits how many groups and how many 
+genomes in each group you can have, but it will take longer the more you have.
+
+Each group of reference genomes needs to be set up using the setup_refs.py utility:
+
+    usage: setup_refs.py [-h] -f FILE -n FILE
+
+    version 0.1, date 12Feb2014, author ulf.schaefer@phe.gov.uk
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -f FILE, --folder FILE
+                            REQUIRED: Folder that contains a set of fasta files
+                            with one reference genome each.
+      -n FILE, --name FILE  REQUIRED: Unique name for this set of references.
+                            Case insensitive. [e.g. salmonella]
+    
+    e.g. 
+        
+        setup_refs.py -n salmonella -f ref/genus01
+
+This step includes a hierarchical clustering step of all genomes in the group. This
+includes the creation of an all-by-all similarity matrix (stored under config/) for
+the genomes in the respective group. Therefore this step will take a significant
+amount of time for larger groups.
+
+Note: It is recommended to keep the number of genomes per group under 15. If larger
+      groups are required, the all-by-all simmilarity matrix for this group should
+      be computed in a parallel manner on a HPC infrastructure.
+      
+Groups of genomes for a variety of genera of pathogenic bacteria can be
+download with this software.
+
+After each group has been setup a config file in theconfig subfolder is updated. This file is
+a required input to the main programme.
+      
+Running KmerID
+--------------
+
+After setting up your reference groups, run Kmerid like this:
+
+    usage: kmerid.py [-h] -f FILE -c FILE [-n]
+
+    version 0.1, date 12Feb2014, author ulf.schaefer@phe.gov.uk
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -f FILE, --fastq FILE
+                            REQUIRED:
+      -c FILE, --config FILE
+                            REQUIRED:
+      -n, --nomix           Do not investigate sample for mixing. [default:
+                            Investigate. (Takes about 2 minutes.)]
+      
+    e.g.
+    
+        python kmerid.py -f reads.fastq --config=config/config.cnf        
+      
+KmerID output
+-------------
+
+KmerID writes a table to stdout containing three columns, the similarity of the reads
+to the reference genome, the groups the genome is in, and the file name of the genome
+(without fasta file ending). The table contains one line per genome is the groups that
+are candidates. If one candidate group contains more than 40 genomes, 40 representatives
+from the group are chosen and shown. Candidate groups are selected by comparing 3
+representatives of each group against the read set and selecting all groups accouring
+within the top 5 hits.
+
+Optional:
+
+The KmerID tool will write another table to stdout. This table can give an indication
+whether the possibility exists that the reads in the sample stem from two different
+organisms. This table contains the following four columns.
+
+1.) absolute difference between two similarities:
+    a) similarity between the reads and respective genome
+    b) similarity between the top hit genome and the respective genome
+2.) the non-absolute difference between the similarities (a-b)
+3.) the groups the genome is in
+4.) the file name of the genome (without fasta file ending)
+
