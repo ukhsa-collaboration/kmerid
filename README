@@ -39,7 +39,7 @@ genomes. We have been using it in such a way each set of reference genomes
 contains only genomes of species from a single bacterial genus.
 
 KmerID will first compare your fastq reads again 3 representatives of each
-group. ON the basis of this it will determine against which group(s) to
+group. On the basis of this it will determine against which group(s) to
 further compare your reads. There are no limits how many groups and how many 
 genomes in each group you can have, but it will take longer the more you have.
 
@@ -61,6 +61,10 @@ Each group of reference genomes needs to be set up using the setup_refs.py utili
         
         setup_refs.py -n salmonella -f ref/genus01
 
+Please note: The files in the references' folder need be in fasta format and have one
+of these file endings .fa, .fna, .fas, .fasta. They can be optionally gzipped (adding.gz)
+at the end of the file name.
+
 This step includes a hierarchical clustering step of all genomes in the group. This
 includes the creation of an all-by-all similarity matrix (stored under config/) for
 the genomes in the respective group. Therefore this step will take a significant
@@ -70,8 +74,8 @@ Note: It is recommended to keep the number of genomes per group under 15. If lar
       groups are required, the all-by-all simmilarity matrix for this group should
       be computed in a parallel manner on a HPC infrastructure.
       
-Groups of genomes for a variety of genera of pathogenic bacteria can be
-download with this software.
+Example groups of genomes for a variety of genera of pathogenic bacteria are part of this
+download..
 
 After each group has been setup a config file in theconfig subfolder is updated. This file is
 a required input to the main programme.

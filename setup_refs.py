@@ -43,6 +43,11 @@ def main():
     oConf = ConfigParser.RawConfigParser()
 
     sFolder = os.path.abspath(oArgs.folder)
+    
+    if os.path.exists(sFolder) == False:
+        stdout_write("ERROR: %s folder not found\nexiting ..." % sFolder)
+        sys.exit()
+        
     oArgs.name = oArgs.name.lower()
     sConfFile = "config/config.cnf"
 
@@ -53,40 +58,56 @@ def main():
         pass
     oConf.set('group_folders', oArgs.name, sFolder)
 
-    aFileEndings = ["fa", "fna", "fas"]
+    aFileEndings = ["fa", "fna", "fas", "fasta"]
     aFileList = []
     for sFileEnd in aFileEndings:
         aFileList += glob.glob(os.path.join(sFolder, "*." + sFileEnd))
         aFileList += glob.glob(os.path.join(sFolder, "*." + sFileEnd + ".gz"))
 
+    stdout_write("%i sequence files found." % len(aFileList))
+
     gZipped = False
     aKmerLists = []
-    for sFile in aFileList:
-        if sFile.endswith(".gz"):
-            gZipped = True
-            p = subprocess.Popen("gunzip " + sFile, shell=True, stdin=None, stdout=None, stderr=None, close_fds=True)
-            stdout_write("gunzipping %s ..." % sFile)
-            p.wait()
-            sFile = sFile[:-3]
-        
+    for sFile in aFileList:    
         k = sFile.rfind(".")
         sKmerList = sFile[:k] + "_kmers.txt"
         if os.path.exists(sKmerList) != True:
+            gZipped = False
+            if sFile.endswith(".gz"):
+                gZipped = True
+                p = subprocess.Popen("gunzip " + sFile, shell=True, stdin=None, stdout=None, stderr=None, close_fds=True)
+                stdout_write("gunzipping %s ..." % sFile)
+                p.wait()
+                sFile = sFile[:-3]
+        
             sCmd = "bin/kmer_refset_process %i %s > %s" % (18, sFile, sKmerList)
             p = subprocess.Popen(sCmd, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
             stdout_write("Calculating kmer list for %s ..." % sFile)
             p.wait()
         
-        aKmerLists.append(sKmerList)
-        if gZipped == True:
-            p = subprocess.Popen("gzip " + sFile, shell=True, stdin=None, stdout=None, stderr=None, close_fds=True)
-            stdout_write("zipping %s ..." % sFile)
-            p.wait()
-        
+            aKmerLists.append(sKmerList)
+            if gZipped == True:
+                p = subprocess.Popen("gzip " + sFile, shell=True, stdin=None, stdout=None, stderr=None, close_fds=True)
+                stdout_write("zipping %s ..." % sFile)
+                p.wait()
+        else:
+            stdout_write("%s - kmer list found. skipping creation." % sKmerList)
+
+    stdout_write("%i kmer lists made." % len(aKmerLists))
+    
     sSimMatFile = "config%s%s_simmat.tsv" % (os.sep, oArgs.name)
-    if os.path.exists(sSimMatFile) != True:
+    if os.path.exists(sSimMatFile) == True:
+        (c, r) = get_mat_dims(sSimMatFile)
+        if c == len(aKmerLists) + 1 and c==r:
+            stdout_write("found similarity matrix for reference group %s, skipping creation ..." % oArgs.name)
+        else:
+            stdout_write("creating similarity matrix for reference group %s ..." % oArgs.name)
+            create_sim_matrix(aKmerLists, sSimMatFile)
+    else:
         stdout_write("creating similarity matrix for reference group %s ..." % oArgs.name)
         create_sim_matrix(aKmerLists, sSimMatFile)
+        
+    stdout_write("Created sim mat file: %s" % sSimMatFile)
     
     try:
         oConf.add_section('matrices')
@@ -173,6 +194,20 @@ def create_sim_matrix(aFiles, sSimMat):
 
     fOut.close()
     return
+
+# ---------------------------------------------------------------
+
+def get_mat_dims(sFile):
+    f = open(sFile, 'r')
+    a = []
+    for s in f:
+        a.append(len(s.split("\t")))
+    f.close()
+    c = -1
+    if a.count(a[0]) == len(a):
+        c = a[0]
+    r = len(a)
+    return (c, r)
 
 # ---------------------------------------------------------------
 
