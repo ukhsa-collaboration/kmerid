@@ -22,13 +22,13 @@ def parse_args():
                          metavar='FILE',
                          dest='fastq',
                          required=True,
-                         help='REQUIRED: ') 
+                         help='REQUIRED: Investigate this fastq file.') 
 
     oParser.add_argument('-c', '--config',
                          metavar='FILE',
                          dest='config',
                          required=True,
-                         help='REQUIRED: ')
+                         help='REQUIRED: Configuration file. Usually config/config.cnf.')
     
     oParser.add_argument('-n', '--nomix',
                          action='store_true',

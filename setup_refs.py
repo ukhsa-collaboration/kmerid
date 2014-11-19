@@ -32,6 +32,12 @@ def parse_args():
                          dest='name',
                          required=True,
                          help='REQUIRED: Unique name for this set of references. Case insensitive. [e.g. salmonella]')
+                         
+    oParser.add_argument('-c', '--config',
+                         metavar='FILE',
+                         dest='config',
+                         required=True,
+                         help='REQUIRED: Configuration file. Usually config/config.cnf.')
 
     oArgs = oParser.parse_args()
     return oArgs, oParser
@@ -49,7 +55,7 @@ def main():
         sys.exit()
         
     oArgs.name = oArgs.name.lower()
-    sConfFile = "config/config.cnf"
+    sConfFile = oArgs.config
 
     oConf.read(sConfFile)
     try:
@@ -92,8 +98,9 @@ def main():
                 p.wait()
         else:
             stdout_write("%s - kmer list found. skipping creation." % sKmerList)
+            aKmerLists.append(sKmerList)
 
-    stdout_write("%i kmer lists made." % len(aKmerLists))
+    stdout_write("%i kmer lists made or found." % len(aKmerLists))
     
     sSimMatFile = "config%s%s_simmat.tsv" % (os.sep, oArgs.name)
     if os.path.exists(sSimMatFile) == True:
