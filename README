@@ -5,9 +5,11 @@ Table of content
   * Set up reference genome groups
   * Running KmerID
   * KmerID output
+  * Examples
 
 Prerequisites
 -------------
+Python version >= 2.6.6 (not Python 3)
 The following Python libraries are required:
 sys, argparse, subprocess, os, operator, glob, ConfigParser, tempfile, scipy
 
@@ -15,12 +17,12 @@ Installation
 ------------
 
 1.) Unpack the tar.gz archive that you downloaded into a folder of your
-    choosing. This folder will  be called $KMERROOT in the following.
+    choosing. This folder will be called $KMERROOT in the following.
     
 2.) Navigate to $KMERROOT. You should see, among others, subfolders
     src, config and bin and two Python scripts.
 
-3.) Compile the auxilliary executables by typing mnake all.
+3.) Compile the auxilliary executables by typing make all.
 
         make all
     
@@ -45,7 +47,7 @@ genomes in each group you can have, but it will take longer the more you have.
 
 Each group of reference genomes needs to be set up using the setup_refs.py utility:
 
-    usage: setup_refs.py [-h] -f FILE -n FILE
+    usage: setup_refs.py [-h] -f FILE -n FILE -c FILE
 
     version 0.1, date 12Feb2014, author ulf.schaefer@phe.gov.uk
 
@@ -54,20 +56,23 @@ Each group of reference genomes needs to be set up using the setup_refs.py utili
       -f FILE, --folder FILE
                             REQUIRED: Folder that contains a set of fasta files
                             with one reference genome each.
-      -n FILE, --name FILE  REQUIRED: Unique name for this set of references.
-                            Case insensitive. [e.g. salmonella]
+      -n FILE, --name FILE  REQUIRED: Unique name for this set of references. Case
+                            insensitive. [e.g. salmonella]
+      -c FILE, --config FILE
+                            REQUIRED: Configuration file. Usually
+                            config/config.cnf.
     
     e.g. 
         
-        setup_refs.py -n salmonella -f ref/genus01
+        setup_refs.py -n salmonella -f ref/genus01 -c config/config.cnf
 
 Please note: The files in the references' folder need be in fasta format and have one
 of these file endings .fa, .fna, .fas, .fasta. They can be optionally gzipped (adding.gz)
 at the end of the file name.
 
 This step includes a hierarchical clustering step of all genomes in the group. This
-includes the creation of an all-by-all similarity matrix (stored under config/) for
-the genomes in the respective group. Therefore this step will take a significant
+includes the creation of an all-by-all similarity matrix (stored under $KMERROOT/config/)
+for the genomes in the respective group. Therefore this step will take a significant
 amount of time for larger groups.
 
 Note: It is recommended to keep the number of genomes per group under 15. If larger
@@ -77,7 +82,7 @@ Note: It is recommended to keep the number of genomes per group under 15. If lar
 Example groups of genomes for a variety of genera of pathogenic bacteria are part of this
 download..
 
-After each group has been setup a config file in theconfig subfolder is updated. This file is
+After each group has been setup a config file in the config subfolder is updated. This file is
 a required input to the main programme.
       
 Running KmerID
@@ -92,9 +97,10 @@ After setting up your reference groups, run Kmerid like this:
     optional arguments:
       -h, --help            show this help message and exit
       -f FILE, --fastq FILE
-                            REQUIRED:
+                            REQUIRED: Investigate this fastq file.
       -c FILE, --config FILE
-                            REQUIRED:
+                            REQUIRED: Configuration file. Usually
+                            config/config.cnf.
       -n, --nomix           Do not investigate sample for mixing. [default:
                             Investigate. (Takes about 2 minutes.)]
       
@@ -125,4 +131,123 @@ organisms. This table contains the following four columns.
 2.) the non-absolute difference between the similarities (a-b)
 3.) the groups the genome is in
 4.) the file name of the genome (without fasta file ending)
+
+Examples
+--------
+
+a) Finding the closest genome in a single group:
+
+    * Make sure the reference genomes from the genus Legionella are present in the folder 
+      $KMERROOT/refs/Legionella    
+    * Prepare these reference genomes for KmerID by calling
+      python setup_refs.py -n legionella -f $KMERROOT/ref/Legionella/ -c config/config.cnf
+    * Process the sample data by calling:
+      python kmerid.py -f samples/Legionella_pneumophila_example_reads.fastq.gz -c config/config.cnf -n
+      
+      Output:
+      -------
+      #Kmer based similarities
+      #similarity	groups	file
+      98.377968	legionella	Legionella_pneumophila_str_Paris.fa
+      71.318146	legionella	Legionella_pneumophila_subsp_pneumophila_NC_018140.fa
+      66.087273	legionella	Legionella_pneumophila_subsp_pneumophila_str_Hextuple_3a.fa
+      66.087234	legionella	Legionella_pneumophila_subsp_pneumophila_str_Hextuple_2q.fa
+      64.594894	legionella	Legionella_pneumophila_subsp_pneumophila_NC_018139.fa
+      63.234699	legionella	Legionella_pneumophila_str_Corby.fa
+      62.958763	legionella	Legionella_pneumophila_2300_99_Alcoy.fa
+      62.147953	legionella	Legionella_pneumophila_subsp_pneumophila_str_Philadelphia_1.fa
+      61.927429	legionella	Legionella_pneumophila_subsp_pneumophila_ATCC_43290.fa
+      59.857174	legionella	Legionella_pneumophila_subsp_pneumophila_str_Thunder_Bay.fa
+      56.115902	legionella	Legionella_pneumophila_str_Lens.fa
+
+
+b) Identify unknown sample against multiple groups:
+
+    * Make sure all reference genomes are present in subfolders of $KMERROOT/ref
+    * Prepare all reference groups for KmerID by calling
+      for s in `ls $KMERROOT/ref`;do python setup_refs.py -f $KMERROOT/ref/$s -c config/config.cnf -n $s; done
+    * Process the sample data by calling:
+      python kmerid.py -f $KMERROOT/samples/unknown_pathogen_example_reads.fastq.gz -c $KMERROOT/config/config.cnf -n
+      
+      Output:
+      -------
+      #Kmer based similarities
+      #similarity	groups	file
+      90.137718	pseudomonas	Pseudomonas_aeruginosa_PAO1_uid57945.fa
+      5.215832	pseudomonas	Pseudomonas_resinovorans_NBRC_106553_uid208671.fa
+      4.093119	pseudomonas	Pseudomonas_fulva_12_X_uid67351.fa
+      3.923861	pseudomonas	Pseudomonas_stutzeri_DSM_10701_uid170940.fa
+      3.875630	pseudomonas	Pseudomonas_stutzeri_DSM_4166_uid162113.fa
+      3.717735	pseudomonas	Pseudomonas_mendocina_NK_01_uid66299.fa
+      3.383106	pseudomonas	Pseudomonas_fluorescens_CHA0_uid203393.fa
+      2.662693	pseudomonas	Pseudomonas_putida_F1_uid58355.fa
+      2.155928	pseudomonas	Pseudomonas_fluorescens_SBW25_uid158693.fa
+      1.383858	pseudomonas	Pseudomonas_syringae_phaseolicola_1448A_uid58099.fa
+      0.938764	mycobacterium	Mycobacterium_JDM601_uid67369.fa
+      0.874562	mycobacterium	Mycobacterium_intracellulare_ATCC_13950_uid167994.fa
+      0.844299	mycobacterium	Mycobacterium_MCS_uid58465.fa
+      0.749032	mycobacterium	Mycobacterium_smegmatis_MC2_155_uid57701.fa
+      0.567610	mycobacterium	Mycobacterium_tuberculosis_H37Rv_uid170532.fa
+      0.561620	mycobacterium	Mycobacterium_liflandii_128FXT_uid59005.fa
+      0.550582	mycobacterium	Mycobacterium_rhodesiae_NBB3_uid75107.fa
+      0.539385	mycobacterium	Mycobacterium_smegmatis_JS623_uid184820.fa
+      0.451246	mycobacterium	Mycobacterium_massiliense_GO_06_uid170732.fa
+      0.192369	mycobacterium	Mycobacterium_leprae_Br4923_uid59293.fa
+      
+      
+c) Investigate contaminated sample:
+
+    * Make sure references for all groups have been set up under example b)
+    * Process the sample by calling
+      python kmerid.py -f $KMERROOT/samples/contaminated_sample_example.fastq.gz -c $KMERROOT/config/config.cnf
+
+      Output:
+      -------
+      #Kmer based similarities
+      #similarity	groups	file
+      84.077347	staphylococcus	Staphylococcus_aureus_uid193761.fa
+      80.150398	enterococcus	Enterococcus_faecalis_OG1RF_uid54927.fa
+      76.079369	enterococcus	Enterococcus_faecalis_Symbioflor_1_uid183342.fa
+      72.809959	enterococcus	Enterococcus_7L76_uid197170.fa
+      71.491592	enterococcus	Enterococcus_faecalis_D32_uid171261.fa
+      70.721642	staphylococcus	Staphylococcus_aureus_71193_uid162141.fa
+      67.780098	enterococcus	Enterococcus_faecalis_V583_uid57669.fa
+      19.011084	staphylococcus	Staphylococcus_aureus_MSHR1132_uid89393.fa
+      2.557667	staphylococcus	Staphylococcus_warneri_SG1_uid187059.fa
+      2.151581	staphylococcus	Staphylococcus_haemolyticus_JCSC1435_uid62919.fa
+      2.100819	staphylococcus	Staphylococcus_epidermidis_RP62A_uid57663.fa
+      1.779690	staphylococcus	Staphylococcus_lugdunensis_N920143_uid162143.fa
+      1.615321	staphylococcus	Staphylococcus_saprophyticus_ATCC_15305_uid58411.fa
+      1.358824	staphylococcus	Staphylococcus_carnosus_TM300_uid59401.fa
+      1.189253	staphylococcus	Staphylococcus_pseudintermedius_ED99_uid162109.fa
+      0.951751	enterococcus	Enterococcus_hirae_ATCC_9790_uid70619.fa
+      0.859111	enterococcus	Enterococcus_faecium_NRRL_B_2354_uid188477.fa
+      0.832898	enterococcus	Enterococcus_faecium_DO_uid55353.fa
+      0.792562	enterococcus	Enterococcus_faecium_Aus0085_uid214432.fa
+      0.612133	enterococcus	Enterococcus_casseliflavus_EC20_uid55693.fa
+
+      #Mixing analysis:
+      #Top hit - Group: staphylococcus	File: Staphylococcus_aureus_uid193761.fa	Similarity: 84.077347%
+
+      #Comparison of results:
+      #sim diff absolute	sim(reads,thisfile)-sim(tophit,thisfile)	group	file
+      79.904867	79.904867	enterococcus	Enterococcus_faecalis_OG1RF_uid54927.fa
+      75.834908	75.834908	enterococcus	Enterococcus_faecalis_Symbioflor_1_uid183342.fa
+      72.577836	72.577836	enterococcus	Enterococcus_7L76_uid197170.fa
+      71.258053	71.258053	enterococcus	Enterococcus_faecalis_D32_uid171261.fa
+      67.514926	67.514926	enterococcus	Enterococcus_faecalis_V583_uid57669.fa
+      0.738434	0.738434	enterococcus	Enterococcus_hirae_ATCC_9790_uid70619.fa
+      0.643232	0.643232	enterococcus	Enterococcus_faecium_DO_uid55353.fa
+      0.62082	0.62082	enterococcus	Enterococcus_faecium_NRRL_B_2354_uid188477.fa
+      0.582432	-0.582432	staphylococcus	Staphylococcus_epidermidis_RP62A_uid57663.fa
+      0.578488	0.578488	enterococcus	Enterococcus_faecium_Aus0085_uid214432.fa
+      0.481429	0.481429	enterococcus	Enterococcus_casseliflavus_EC20_uid55693.fa
+      0.409216	-0.409216	staphylococcus	Staphylococcus_aureus_MSHR1132_uid89393.fa
+      0.302525	-0.302525	staphylococcus	Staphylococcus_haemolyticus_JCSC1435_uid62919.fa
+      0.28907	-0.28907	staphylococcus	Staphylococcus_aureus_71193_uid162141.fa
+      0.149772	0.149772	staphylococcus	Staphylococcus_lugdunensis_N920143_uid162143.fa
+      0.132699	0.132699	staphylococcus	Staphylococcus_carnosus_TM300_uid59401.fa
+      0.089541	0.089541	staphylococcus	Staphylococcus_pseudintermedius_ED99_uid162109.fa
+      0.016231	-0.016231	staphylococcus	Staphylococcus_warneri_SG1_uid187059.fa
+      0.011532	0.011532	staphylococcus	Staphylococcus_saprophyticus_ATCC_15305_uid58411.fa
 
