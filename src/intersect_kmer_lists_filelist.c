@@ -5,7 +5,7 @@ first list (assumed to be from reads) and all other lists (assumed to be from a
 set of reference genomes).
 
 Author: ulf.schaefer@phe.gov.uk 31Jul2013
-Modified: tobingallop@yahoo.co.uk 20Nov2018
+Modified: sam.gallop@nbi.ac.uk 20Nov2018
 
 ****************************************************************/
 
